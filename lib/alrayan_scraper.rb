@@ -3,6 +3,7 @@ require 'capybara/dsl'
 require 'capybara/poltergeist'
 require 'yaml'
 require 'pry'
+require 'open3'
 
 class AlrayanScraper
   include Capybara::DSL
@@ -26,6 +27,10 @@ class AlrayanScraper
   def initialize(account)
     @account = account
     @cfg = YAML.load_file("#{__dir__}/../config.yaml").fetch(account)
+    cfg.fetch 'username'
+    cfg.fetch 'password'
+    cfg.fetch 'password2'
+    cfg.fetch 'account-id'
   end
 
   attr_reader :cfg, :account
@@ -57,8 +62,19 @@ class AlrayanScraper
     click_on 'Log On'
   end
 
+  def download_ofx
+    visit "#{BASE}/online/aspscripts/AccountActivityFilter.asp?BranchId=&AccountId=#{cfg['account-id']}"
+    cookies = page.driver.browser.cookies.map {|c, d| "#{c}=#{d.value}"}.join('; ')
+    curlstr = "curl -X POST -d BranchId= -d AccountId=#{cfg['account-id']} -d radioDate=All -d CreditDebit=b -d Description= -d 'banksName_Export= Banks Name:,' -d 'acctNumber_Export= Account Number:,' -d 'bookDate_Export= Date, ' -b '#{cookies}' '#{BASE}/online/aspscripts/AccountActivityOfxExport.asp?BranchId=&AccountId=#{cfg['account-id']}'"
+    Open3.popen3(curlstr) do |stdin, stdout, stderr, process|
+      raise "cURL error: #{stderr.read}" if process.value.exitstatus != 0
+      return stdout.read
+    end
+  end
+
   def scrape
     login
+    puts download_ofx
   end
 end
 
