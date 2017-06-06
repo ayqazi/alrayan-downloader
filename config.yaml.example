@@ -1,0 +1,10 @@
+---
+business:
+  username: ABC1234567
+  password: businesspassword
+  password2: abcdefgh
+
+personal:
+  username: DEF987654321
+  password: personalpassword
+  password2: ijklmnop
