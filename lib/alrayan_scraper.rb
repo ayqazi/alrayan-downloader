@@ -62,6 +62,12 @@ class AlrayanScraper
     click_on 'Log On'
   end
 
+  def amounts
+    page.find('.clsFormList tbody').native.find_css('tr')
+      .select { |tr| tr.find(:xpath, 'td[contains(text(), "%s")]' % [cfg['account-id']]).size > 0 }.first
+      .find_css('td')[3..4].map(&:all_text)
+  end
+
   def download_ofx
     visit "#{BASE}/online/aspscripts/AccountActivityFilter.asp?BranchId=&AccountId=#{cfg['account-id']}"
     cookies = page.driver.browser.cookies.map {|c, d| "#{c}=#{d.value}"}.join('; ')
@@ -74,6 +80,7 @@ class AlrayanScraper
 
   def scrape
     login
+    $stderr.puts("Account: %s, Available: %s" % amounts)
     puts download_ofx
   end
 end
